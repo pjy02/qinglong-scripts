@@ -30,6 +30,8 @@ eyJhbGciOi...#cf_token_value#主号
 second_jwt_token#second_cf_token#小号
 ```
 
+> ⚠️ 请勿只把 JWT Token 直接填入 `ACCK_ACCOUNTS`，至少需要按照 `JWT_TOKEN#CF_TOKEN` 的格式补全两个字段，否则脚本会提示“格式错误，需使用 JWT#CF 格式”。
+
 如果想写在一行：
 ```
 eyJhbGciOi...#cf_token_value#主号&second_jwt_token#second_cf_token#小号
