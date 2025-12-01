@@ -80,6 +80,12 @@ function buildHeaders(account) {
     };
 }
 
+function isUnauthorized(status, data) {
+    if (status === 401 || status === 403) return true;
+    if (data && typeof data.code === 'number' && (data.code === 401 || data.code === 403)) return true;
+    return false;
+}
+
 async function request(path, headers, name) {
     try {
         const response = await axios.get(`${CONFIG.BASE_URL}${path}`, {
@@ -114,6 +120,11 @@ async function handleAccount(account, index) {
     }
 
     const statusData = statusRes.response.data;
+    if (isUnauthorized(statusRes.response.status, statusData)) {
+        result.message = '凭证失效，需重新获取 authorization 与 cf_clearance';
+        log(`【${name}】检测到凭证失效，请更新 ACCK 环境变量`, 'WARN');
+        return result;
+    }
     const alreadySigned = statusData && statusData.data === true;
 
     if (alreadySigned) {
@@ -127,6 +138,11 @@ async function handleAccount(account, index) {
         }
 
         const signBody = signRes.response.data;
+        if (isUnauthorized(signRes.response.status, signBody)) {
+            result.message = '签到失败: 凭证失效，请更新 authorization 与 cf_clearance';
+            log(`【${name}】签到请求返回未授权，已停止后续流程`, 'WARN');
+            return result;
+        }
         if (signBody && signBody.code === 200) {
             log(`【${name}】签到成功`);
             result.signed = true;
@@ -143,6 +159,11 @@ async function handleAccount(account, index) {
     }
 
     const infoData = infoRes.response.data;
+    if (isUnauthorized(infoRes.response.status, infoData)) {
+        result.message = '积分查询失败: 凭证失效，请更新';
+        log(`【${name}】积分查询返回未授权，建议重新登录获取 Cookie`, 'WARN');
+        return result;
+    }
     const points = infoData && infoData.data && typeof infoData.data.jifen === 'number'
         ? infoData.data.jifen
         : null;
