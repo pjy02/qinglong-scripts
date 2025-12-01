@@ -17,13 +17,22 @@
 ```
 变量名: ACCK_ACCOUNTS
 变量值: JWT_TOKEN#CF_TOKEN#备注(可选)\nJWT_TOKEN#CF_TOKEN#备注(可选)
-备注: 支持换行或使用 & 分隔多个账号
+备注: 一行一个账号，行内使用 # 依次填入 JWT Token、cf_clearance、备注
 ```
+
+- **分隔说明**：
+  - 同一账号的三个字段必须用 `#` 号分开，缺少某个字段不要省略 `#`。
+  - 多个账号推荐“换行分隔”；如果在一行填写多个账号，请用 `&` 将完整账号串隔开。
 
 示例：
 ```
 eyJhbGciOi...#cf_token_value#主号
 second_jwt_token#second_cf_token#小号
+```
+
+如果想写在一行：
+```
+eyJhbGciOi...#cf_token_value#主号&second_jwt_token#second_cf_token#小号
 ```
 
 ### 2. 单账号简写
