@@ -16,25 +16,22 @@
 
 ```
 变量名: ACCK_ACCOUNTS
-变量值: JWT_TOKEN#CF_TOKEN#备注(可选)\nJWT_TOKEN#CF_TOKEN#备注(可选)
-备注: 一行一个账号，行内使用 # 依次填入 JWT Token、cf_clearance、备注
+变量值: AUTHORIZATION#CF_CLEARANCE\nAUTHORIZATION#CF_CLEARANCE
 ```
 
 - **分隔说明**：
-  - 同一账号的三个字段必须用 `#` 号分开，缺少某个字段不要省略 `#`。
-  - 多个账号推荐“换行分隔”；如果在一行填写多个账号，请用 `&` 将完整账号串隔开。
+  - 行内依次填写 authorization 与 cf_clearance，中间用 `#` 分隔，缺少任意一段都会触发格式错误。
+  - 多个账号请用换行分隔；如需单行填写，可用 `&` 将完整账号串隔开，但顺序和 `#` 分隔规则不变。
 
 示例：
 ```
-eyJhbGciOi...#cf_token_value#主号
-second_jwt_token#second_cf_token#小号
+eyJhbGciOi...#cf_token_value
+second_jwt_token#second_cf_token
 ```
-
-> ⚠️ 请勿只把 JWT Token 直接填入 `ACCK_ACCOUNTS`，至少需要按照 `JWT_TOKEN#CF_TOKEN` 的格式补全两个字段，否则脚本会提示“格式错误，需使用 JWT#CF 格式”。
 
 如果想写在一行：
 ```
-eyJhbGciOi...#cf_token_value#主号&second_jwt_token#second_cf_token#小号
+eyJhbGciOi...#cf_token_value&second_jwt_token#second_cf_token
 ```
 
 ### 2. 单账号简写
