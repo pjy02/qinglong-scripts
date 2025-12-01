@@ -12,18 +12,30 @@
 
 ## 环境变量配置
 ### 1. 多账号配置（推荐）
-- **ACCK_ACCOUNTS**
-- 说明：每行或使用 `&` 分隔一个账号
-- 格式：`JWT_TOKEN#CF_TOKEN#备注(可选)`
-- 示例：
-  ```
-  eyJhbGciOi...#cf_token_value#主号
-  second_jwt_token#second_cf_token#小号
-  ```
+在青龙面板 `环境变量` 中添加：
+
+```
+变量名: ACCK_ACCOUNTS
+变量值: JWT_TOKEN#CF_TOKEN#备注(可选)\nJWT_TOKEN#CF_TOKEN#备注(可选)
+备注: 支持换行或使用 & 分隔多个账号
+```
+
+示例：
+```
+eyJhbGciOi...#cf_token_value#主号
+second_jwt_token#second_cf_token#小号
+```
 
 ### 2. 单账号简写
-- **ACCK_AUTHORIZATION**: 请求头 `authorization` 对应的 JWT Token
-- **ACCK_CF_CLEARANCE**: Cookie 中的 `cf_clearance` 值
+如果只用一个账号，可以分成两个变量配置：
+
+```
+变量名: ACCK_AUTHORIZATION
+变量值: <JWT_TOKEN>
+
+变量名: ACCK_CF_CLEARANCE
+变量值: <CF_TOKEN>
+```
 
 > 两种方式任选其一，若同时配置，则优先使用 `ACCK_ACCOUNTS`。
 
