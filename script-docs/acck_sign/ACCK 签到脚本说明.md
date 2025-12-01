@@ -23,6 +23,8 @@
   - 行内依次填写 authorization 与 cf_clearance，中间用 `#` 分隔，缺少任意一段都会触发格式错误。
   - 多个账号请用换行分隔；如需单行填写，可用 `&` 将完整账号串隔开，但顺序和 `#` 分隔规则不变。
 
+> 如果开启自动获取 cf_clearance（见下方 `ACCK_AUTO_FETCH_CF`），且暂时没有可用的 cf_clearance，可以只填写 `AUTHORIZATION#`，脚本会尝试用无头浏览器去拿新的 cf_clearance。
+
 示例：
 ```
 eyJhbGciOi...#cf_token_value
@@ -46,6 +48,19 @@ eyJhbGciOi...#cf_token_value&second_jwt_token#second_cf_token
 ```
 
 > 两种方式任选其一，若同时配置，则优先使用 `ACCK_ACCOUNTS`。
+
+### 3. 自动获取 cf_clearance（可选）
+```
+变量名: ACCK_AUTO_FETCH_CF
+变量值: true
+```
+
+- 设置为 `true` 后，脚本会在缺少 cf_clearance 或遇到 401/403 时，使用 **playwright-chromium** 启动无头浏览器访问 ACCK 接口，自动提取新的 `cf_clearance` 并重试。
+- 依赖安装：
+  ```bash
+  npm install playwright-core playwright-chromium
+  ```
+- 注意：该方法只能帮助获取 Cloudflare 的 `cf_clearance`，仍需手动准备有效的 `authorization`（JWT Token）。
 
 ## 依赖安装
 ```bash
