@@ -9,6 +9,8 @@
  * * 2. NODESEEK_SIGN_TYPE (可选)
  * - random: 随机签到 (默认，推荐)
  * - fixed: 固定签到
+ * * 3. NODESEEK_USER_AGENT (可选)
+ * - 抓包时的 User-Agent，必须与 Cookie 来源浏览器一致，否则会报 403
  * * 作者: CodeBuddy
  * 更新时间: 2025-01-27
  */
@@ -30,7 +32,8 @@ const CONFIG = {
     URL_FIXED: 'https://www.nodeseek.com/api/attendance',
     ORIGIN: 'https://www.nodeseek.com',
     REFERER: 'https://www.nodeseek.com/board', 
-    USER_AGENT: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    // 默认使用用户抓包时的 Edge UA，防止 403
+    DEFAULT_UA: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0',
     TIMEOUT: 15000,
     MAX_RETRY: 3
 };
@@ -57,22 +60,36 @@ function getSignType() {
     return type.toLowerCase() === 'fixed' ? 'fixed' : 'random';
 }
 
+// 获取 User-Agent
+function getUserAgent() {
+    return process.env.NODESEEK_USER_AGENT || CONFIG.DEFAULT_UA;
+}
+
 // 执行签到
 async function sign(cookie, index) {
     const logPrefix = `账号${index + 1}`;
     const signType = getSignType();
+    const ua = getUserAgent();
     const targetUrl = signType === 'random' ? CONFIG.URL_RANDOM : CONFIG.URL_FIXED;
-    // 统一日志文案
     const typeName = signType === 'random' ? '随机鸡腿' : '固定签到';
 
+    // 构造高度拟真的浏览器 Headers
     const headers = {
-        'User-Agent': CONFIG.USER_AGENT,
+        'User-Agent': ua,
         'Content-Type': 'application/json',
         'X-Requested-With': 'XMLHttpRequest',
         'Origin': CONFIG.ORIGIN,
         'Referer': CONFIG.REFERER,
         'Cookie': cookie,
-        'Accept': 'application/json, text/javascript, */*; q=0.01'
+        'Accept': '*/*',
+        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+        // 增加安全头，伪装成浏览器
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-origin',
+        'Priority': 'u=1, i',
+        'Pragma': 'no-cache',
+        'Cache-Control': 'no-cache'
     };
 
     let retryCount = 0;
@@ -114,16 +131,28 @@ async function sign(cookie, index) {
             }
 
         } catch (error) {
+            // 处理 403 Cloudflare 拦截
+            if (error.response && error.response.status === 403) {
+                log(`⚠️ [${logPrefix}] 遭遇 HTTP 403 拦截`);
+                log(`💡 可能原因:`);
+                log(`   1. Cookie 与 User-Agent 不匹配 (脚本默认 UA 为 Chrome 144)`);
+                log(`   2. IP 地址变动导致 cf_clearance 失效`);
+                return {
+                    success: false,
+                    msg: `❌ Cloudflare 盾拦截 (403)，请检查 UA 或更新 Cookie`
+                };
+            }
+
             const errorMsg = error.response ? 
-                `HTTP ${error.response.status} - ${JSON.stringify(error.response.data)}` : 
+                `HTTP ${error.response.status} - ${JSON.stringify(error.response.data).substring(0, 100)}...` : 
                 error.message;
             
             log(`⚠️ [${logPrefix}] 请求异常: ${errorMsg}`);
             
-            if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+            if (error.response && error.response.status === 401) {
                 return {
                     success: false,
-                    msg: `❌ Cookie 已失效，请重新提取`
+                    msg: `❌ Cookie 已失效 (401)，请重新提取`
                 };
             }
 
@@ -151,9 +180,9 @@ async function main() {
     }
 
     log(`📝 检测到 ${cookies.length} 个账号`);
-    // 统一日志格式：显示推荐状态
     const typeDisplay = signType === 'random' ? '随机鸡腿 (推荐)' : '固定签到';
     log(`🎯 签到模式: ${typeDisplay}`);
+    log(`🛡️ User-Agent: ${getUserAgent().substring(0, 50)}...`);
 
     const results = [];
     
