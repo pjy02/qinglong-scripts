@@ -6,9 +6,8 @@
  * * 环境变量说明:
  * 1. NODESEEK_COOKIE (必需)
  * - 网页登录后抓取 Cookie，多个账号用换行或 & 分隔
- * - 必须包含 session 等关键字段
  * * 2. NODESEEK_SIGN_TYPE (可选)
- * - random: 随机签到 (默认，可能获得更多鸡腿)
+ * - random: 随机签到 (默认，推荐)
  * - fixed: 固定签到
  * * 作者: CodeBuddy
  * 更新时间: 2025-01-27
@@ -49,7 +48,6 @@ const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 function getCookies() {
     const raw = process.env.NODESEEK_COOKIE;
     if (!raw) return [];
-    // 支持换行和&分隔
     return raw.split(/[\n&]/).filter(item => !!item && item.trim().length > 0);
 }
 
@@ -64,12 +62,13 @@ async function sign(cookie, index) {
     const logPrefix = `账号${index + 1}`;
     const signType = getSignType();
     const targetUrl = signType === 'random' ? CONFIG.URL_RANDOM : CONFIG.URL_FIXED;
+    // 统一日志文案
     const typeName = signType === 'random' ? '随机鸡腿' : '固定签到';
 
     const headers = {
         'User-Agent': CONFIG.USER_AGENT,
         'Content-Type': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest', // 关键头部
+        'X-Requested-With': 'XMLHttpRequest',
         'Origin': CONFIG.ORIGIN,
         'Referer': CONFIG.REFERER,
         'Cookie': cookie,
@@ -88,10 +87,6 @@ async function sign(cookie, index) {
 
             const data = response.data;
             
-            // 响应处理
-            // 通常成功响应: {"success":true, "message":"获得 5 鸡腿", ...}
-            // 或者可能只返回 message
-            
             if (data.success === true) {
                 const msg = data.message || '签到成功';
                 const gain = data.gain ? `获得 ${data.gain}` : '';
@@ -102,14 +97,11 @@ async function sign(cookie, index) {
                     msg: `🎉 ${msg} ${gain}`
                 };
             } else {
-                // 处理虽然请求成功但业务逻辑失败的情况（如已签到）
-                // 常见的已签到消息可能是 "success": false, "message": "已经签到过了"
                 const msg = data.message || '未知错误';
-                
                 if (msg.includes('已经签到') || msg.includes('Have attended')) {
                     log(`🔵 [${logPrefix}] 今日已签到: ${msg}`);
                     return {
-                        success: true, // 视为成功
+                        success: true,
                         msg: `👌 ${msg}`
                     };
                 }
@@ -128,7 +120,6 @@ async function sign(cookie, index) {
             
             log(`⚠️ [${logPrefix}] 请求异常: ${errorMsg}`);
             
-            // 检查是否是 401/403 (Cookie 失效)
             if (error.response && (error.response.status === 401 || error.response.status === 403)) {
                 return {
                     success: false,
@@ -160,24 +151,24 @@ async function main() {
     }
 
     log(`📝 检测到 ${cookies.length} 个账号`);
-    log(`🎯 签到模式: ${signType === 'random' ? '随机鸡腿 (推荐)' : '固定收益'}`);
+    // 统一日志格式：显示推荐状态
+    const typeDisplay = signType === 'random' ? '随机鸡腿 (推荐)' : '固定签到';
+    log(`🎯 签到模式: ${typeDisplay}`);
 
     const results = [];
     
     for (let i = 0; i < cookies.length; i++) {
         const result = await sign(cookies[i], i);
         results.push(result);
-        // 账号间随机延迟
         if (i < cookies.length - 1) {
             await delay(3000);
         }
     }
 
-    // 汇总通知
     const successCount = results.filter(r => r.success).length;
     const notifyTitle = `NodeSeek 签到: 成功 ${successCount}/${results.length}`;
     let notifyContent = `执行时间: ${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}\n`;
-    notifyContent += `模式: ${signType}\n\n`;
+    notifyContent += `模式: ${typeDisplay}\n\n`;
     
     results.forEach((res, index) => {
         notifyContent += `账号 ${index + 1}: ${res.msg}\n`;
@@ -191,7 +182,6 @@ async function main() {
     }
 }
 
-// 执行
 if (require.main === module) {
     main().catch(e => {
         console.error('脚本运行时发生未捕获错误:', e);

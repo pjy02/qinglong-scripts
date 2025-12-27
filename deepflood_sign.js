@@ -50,15 +50,12 @@ const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 function getCookies() {
     const raw = process.env.DEEPFLOOD_COOKIE;
     if (!raw) return [];
-    // 支持换行和&分隔
     return raw.split(/[\n&]/).filter(item => !!item && item.trim().length > 0);
 }
 
 // 获取签到类型
 function getSignType() {
-    // 默认为 fixed
     const type = process.env.DEEPFLOOD_SIGN_TYPE || 'fixed';
-    // 只有明确设置为 random 时才启用随机模式，否则一律固定模式
     return type.toLowerCase() === 'random' ? 'random' : 'fixed';
 }
 
@@ -79,9 +76,9 @@ async function sign(cookie, index, customHeaders) {
     const logPrefix = `账号${index + 1}`;
     const signType = getSignType();
     const targetUrl = signType === 'random' ? CONFIG.URL_RANDOM : CONFIG.URL_FIXED;
-    const typeName = signType === 'random' ? '随机模式' : '固定模式';
+    // 统一日志文案
+    const typeName = signType === 'random' ? '随机鸡腿' : '固定签到';
     
-    // 构造 Headers
     const headers = {
         'User-Agent': CONFIG.USER_AGENT,
         'Content-Type': 'application/json',
@@ -106,7 +103,6 @@ async function sign(cookie, index, customHeaders) {
 
             const data = response.data;
             
-            // 响应示例: {"success":true,"message":"今天的签到收益是5个鸡腿","gain":5,"current":655}
             if (data && (data.success === true || data.message)) {
                 const msg = data.message || '签到成功';
                 const gain = data.gain ? `获得 ${data.gain}` : '';
@@ -118,8 +114,6 @@ async function sign(cookie, index, customHeaders) {
                     msg: `🎉 ${msg}\n💰 ${gain}\nlz ${current}`
                 };
             } else {
-                // 检查是否已签到
-                // {"success": false, "message": "已经签到过了"} 
                 const msg = data.message || '未知错误';
                 if (msg.includes('已经签到') || msg.includes('Have attended')) {
                      log(`🔵 [${logPrefix}] 今日已签到: ${msg}`);
@@ -172,7 +166,9 @@ async function main() {
     }
 
     log(`📝 检测到 ${cookies.length} 个账号`);
-    log(`🎯 签到模式: ${signType === 'random' ? '随机模式' : '固定模式 (默认)'}`);
+    // 统一日志格式：显示默认状态
+    const typeDisplay = signType === 'random' ? '随机鸡腿' : '固定签到 (默认)';
+    log(`🎯 签到模式: ${typeDisplay}`);
 
     if (Object.keys(customHeaders).length > 0) {
         log(`🔧 检测到自定义 Headers 配置，将覆盖默认设置`);
@@ -189,11 +185,10 @@ async function main() {
         }
     }
 
-    // 汇总通知
     const successCount = results.filter(r => r.success).length;
     const notifyTitle = `DeepFlood 签到: 成功 ${successCount}/${results.length}`;
     let notifyContent = `执行时间: ${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}\n`;
-    notifyContent += `模式: ${signType}\n\n`;
+    notifyContent += `模式: ${typeDisplay}\n\n`;
     
     results.forEach((res, index) => {
         notifyContent += `账号 ${index + 1}:\n${res.msg}\n\n`;
@@ -207,7 +202,6 @@ async function main() {
     }
 }
 
-// 执行
 if (require.main === module) {
     main().catch(e => {
         console.error('脚本运行时发生未捕获错误:', e);
