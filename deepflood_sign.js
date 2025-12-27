@@ -8,10 +8,7 @@
  * - 网页登录后抓取 Cookie
  * 2. DEEPFLOOD_USER_AGENT (必需/推荐)
  * - 抓包时的浏览器 UA。务必设置，否则极易报 403。
- * 3. DEEPFLOOD_PROXY (可选)
- * - 格式: http://user:pass@1.2.3.4:7890
- * - 用于解决 IP 变动导致的 Cloudflare 验证失败
- * 4. DEEPFLOOD_SIGN_TYPE (可选)
+ * 3. DEEPFLOOD_SIGN_TYPE (可选)
  * - fixed (默认) / random
  * * 作者: CodeBuddy
  * 更新时间: 2025-01-27
@@ -19,7 +16,6 @@
 
 const axios = require('axios');
 const path = require('path');
-const { HttpsProxyAgent } = require('https-proxy-agent');
 
 // 尝试加载通知模块
 let sendNotify;
@@ -80,20 +76,8 @@ function getCustomHeaders() {
     }
 }
 
-// 获取代理配置
-function getProxyAgent() {
-    const proxyUrl = process.env.DEEPFLOOD_PROXY;
-    if (proxyUrl) {
-        // Log proxy usage (hide password)
-        const safeUrl = proxyUrl.replace(/:([^:@]+)@/, ':****@');
-        log(`🌐 使用代理: ${safeUrl}`);
-        return new HttpsProxyAgent(proxyUrl);
-    }
-    return null;
-}
-
 // 执行签到
-async function sign(cookie, index, customHeaders, httpsAgent) {
+async function sign(cookie, index, customHeaders) {
     const logPrefix = `账号${index + 1}`;
     const signType = getSignType();
     const ua = getUserAgent();
@@ -128,11 +112,6 @@ async function sign(cookie, index, customHeaders, httpsAgent) {
                 headers: headers,
                 timeout: CONFIG.TIMEOUT,
             };
-
-            // 如果配置了代理，注入 agent
-            if (httpsAgent) {
-                axiosConfig.httpsAgent = httpsAgent;
-            }
 
             const response = await axios.post(targetUrl, {}, axiosConfig);
             const data = response.data;
@@ -178,7 +157,7 @@ async function sign(cookie, index, customHeaders, httpsAgent) {
                 log(`💡 常见原因: 1. Cookie绑定的IP与当前服务器IP不一致 2. UA不匹配`);
                 return {
                     success: false,
-                    msg: `❌ Cloudflare 盾拦截 (403)，请尝试使用 Proxy 或在服务器上抓包`
+                    msg: `❌ Cloudflare 盾拦截 (403)，请检查 UA 或更新 Cookie`
                 };
             }
 
@@ -213,7 +192,6 @@ async function main() {
     const cookies = getCookies();
     const customHeaders = getCustomHeaders();
     const signType = getSignType();
-    const httpsAgent = getProxyAgent();
 
     if (cookies.length === 0) {
         log('❌ 未找到环境变量 DEEPFLOOD_COOKIE，请先配置。');
@@ -232,7 +210,7 @@ async function main() {
     const results = [];
     
     for (let i = 0; i < cookies.length; i++) {
-        const result = await sign(cookies[i], i, customHeaders, httpsAgent);
+        const result = await sign(cookies[i], i, customHeaders);
         results.push(result);
         if (i < cookies.length - 1) {
             const waitTime = Math.floor(Math.random() * 3000) + 2000;
