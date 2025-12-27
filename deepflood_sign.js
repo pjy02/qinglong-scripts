@@ -9,8 +9,10 @@
  * * 2. DEEPFLOOD_SIGN_TYPE (可选)
  * - fixed: 固定签到 (默认，奖励稳定)
  * - random: 随机签到 (奖励波动，可能获得更多)
- * * 3. DEEPFLOOD_HEADERS (可选)
- * - 自定义 Headers JSON 字符串，用于解决签名校验问题
+ * * 3. DEEPFLOOD_USER_AGENT (可选)
+ * - 抓包时的 User-Agent，建议与 Cookie 来源浏览器一致
+ * * 4. DEEPFLOOD_HEADERS (可选)
+ * - 自定义 Headers JSON 字符串 (高级用法)
  * * 作者: CodeBuddy
  * 更新时间: 2025-01-27
  */
@@ -32,7 +34,8 @@ const CONFIG = {
     URL_FIXED: 'https://www.deepflood.com/api/attendance?random=false',
     ORIGIN: 'https://www.deepflood.com',
     REFERER: 'https://www.deepflood.com/sw.js?v=0.3.33', 
-    USER_AGENT: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
+    // 默认使用较新的 Edge UA，防止 Cloudflare 403
+    DEFAULT_UA: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0',
     TIMEOUT: 15000,
     MAX_RETRY: 3
 };
@@ -59,6 +62,11 @@ function getSignType() {
     return type.toLowerCase() === 'random' ? 'random' : 'fixed';
 }
 
+// 获取 User-Agent
+function getUserAgent() {
+    return process.env.DEEPFLOOD_USER_AGENT || CONFIG.DEFAULT_UA;
+}
+
 // 获取自定义 Headers
 function getCustomHeaders() {
     const raw = process.env.DEEPFLOOD_HEADERS;
@@ -75,19 +83,26 @@ function getCustomHeaders() {
 async function sign(cookie, index, customHeaders) {
     const logPrefix = `账号${index + 1}`;
     const signType = getSignType();
+    const ua = getUserAgent();
     const targetUrl = signType === 'random' ? CONFIG.URL_RANDOM : CONFIG.URL_FIXED;
-    // 统一日志文案
     const typeName = signType === 'random' ? '随机鸡腿' : '固定签到';
     
+    // 构造高度拟真的浏览器 Headers
     const headers = {
-        'User-Agent': CONFIG.USER_AGENT,
+        'User-Agent': ua,
         'Content-Type': 'application/json',
         'Origin': CONFIG.ORIGIN,
         'Referer': CONFIG.REFERER,
         'Cookie': cookie,
         'Accept': '*/*',
-        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-        'refract-version': '0.3.33',
+        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-origin',
+        'Priority': 'u=1, i',
+        'Pragma': 'no-cache',
+        'Cache-Control': 'no-cache',
+        'refract-version': '0.3.33', // 保持抓包中的版本号
         ...customHeaders 
     };
     
@@ -115,7 +130,7 @@ async function sign(cookie, index, customHeaders) {
                 };
             } else {
                 const msg = data.message || '未知错误';
-                if (msg.includes('已经签到') || msg.includes('Have attended')) {
+                if (msg.includes('已经签到') || msg.includes('Have attended') || msg.includes('重复操作')) {
                      log(`🔵 [${logPrefix}] 今日已签到: ${msg}`);
                      return { success: true, msg: `👌 ${msg}` };
                 }
@@ -128,16 +143,41 @@ async function sign(cookie, index, customHeaders) {
             }
 
         } catch (error) {
+            // --- 错误处理逻辑升级 ---
+
+            // 特判：类似 NodeSeek，HTTP 500 可能表示已签到
+            if (error.response && error.response.status === 500) {
+                 const data = error.response.data || {};
+                 const msg = data.message || '';
+                 
+                 if (msg.includes('已完成签到') || msg.includes('重复操作') || msg.includes('Have attended')) {
+                     log(`🔵 [${logPrefix}] 今日已签到 (HTTP 500): ${msg}`);
+                     return {
+                        success: true,
+                        msg: `👌 ${msg}`
+                     };
+                 }
+            }
+
+            // 处理 403 Cloudflare 拦截
+            if (error.response && error.response.status === 403) {
+                log(`⚠️ [${logPrefix}] 遭遇 HTTP 403 拦截`);
+                return {
+                    success: false,
+                    msg: `❌ Cloudflare 盾拦截 (403)，请检查 UA 或更新 Cookie`
+                };
+            }
+
             const errorMsg = error.response ? 
-                `HTTP ${error.response.status} - ${JSON.stringify(error.response.data)}` : 
+                `HTTP ${error.response.status} - ${JSON.stringify(error.response.data).substring(0, 100)}...` : 
                 error.message;
             
             log(`⚠️ [${logPrefix}] 请求异常: ${errorMsg}`);
             
-            if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+            if (error.response && (error.response.status === 401)) {
                 return {
                     success: false,
-                    msg: `❌ Cookie 已失效，请重新提取`
+                    msg: `❌ Cookie 已失效 (401)，请重新提取`
                 };
             }
 
@@ -166,9 +206,9 @@ async function main() {
     }
 
     log(`📝 检测到 ${cookies.length} 个账号`);
-    // 统一日志格式：显示默认状态
     const typeDisplay = signType === 'random' ? '随机鸡腿' : '固定签到 (默认)';
     log(`🎯 签到模式: ${typeDisplay}`);
+    log(`🛡️ User-Agent: ${getUserAgent().substring(0, 50)}...`);
 
     if (Object.keys(customHeaders).length > 0) {
         log(`🔧 检测到自定义 Headers 配置，将覆盖默认设置`);
