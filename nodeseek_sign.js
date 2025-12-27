@@ -83,7 +83,6 @@ async function sign(cookie, index) {
         'Cookie': cookie,
         'Accept': '*/*',
         'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
-        // 增加安全头，伪装成浏览器
         'Sec-Fetch-Dest': 'empty',
         'Sec-Fetch-Mode': 'cors',
         'Sec-Fetch-Site': 'same-origin',
@@ -115,7 +114,7 @@ async function sign(cookie, index) {
                 };
             } else {
                 const msg = data.message || '未知错误';
-                if (msg.includes('已经签到') || msg.includes('Have attended')) {
+                if (msg.includes('已经签到') || msg.includes('Have attended') || msg.includes('重复操作')) {
                     log(`🔵 [${logPrefix}] 今日已签到: ${msg}`);
                     return {
                         success: true,
@@ -131,12 +130,26 @@ async function sign(cookie, index) {
             }
 
         } catch (error) {
+            // --- 错误处理逻辑升级 ---
+
+            // 特判：NodeSeek 即使是 HTTP 500 也可以是“已签到”
+            if (error.response && error.response.status === 500) {
+                 const data = error.response.data || {};
+                 const msg = data.message || '';
+                 
+                 // 如果服务器返回“今天已完成签到”，则视为成功，不进行重试
+                 if (msg.includes('已完成签到') || msg.includes('重复操作') || msg.includes('Have attended')) {
+                     log(`🔵 [${logPrefix}] 今日已签到 (HTTP 500): ${msg}`);
+                     return {
+                        success: true,
+                        msg: `👌 ${msg}`
+                     };
+                 }
+            }
+
             // 处理 403 Cloudflare 拦截
             if (error.response && error.response.status === 403) {
                 log(`⚠️ [${logPrefix}] 遭遇 HTTP 403 拦截`);
-                log(`💡 可能原因:`);
-                log(`   1. Cookie 与 User-Agent 不匹配 (脚本默认 UA 为 Chrome 144)`);
-                log(`   2. IP 地址变动导致 cf_clearance 失效`);
                 return {
                     success: false,
                     msg: `❌ Cloudflare 盾拦截 (403)，请检查 UA 或更新 Cookie`
