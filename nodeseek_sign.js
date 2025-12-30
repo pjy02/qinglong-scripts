@@ -7,8 +7,8 @@
  * 1. NODESEEK_COOKIE (必需)
  * - 网页登录后抓取 Cookie，多个账号用换行或 & 分隔
  * * 2. NODESEEK_SIGN_TYPE (可选)
- * - random: 随机签到 (默认，推荐)
- * - fixed: 固定签到
+ * - fixed: 固定签到 (默认，推荐)
+ * - random: 随机签到
  * * 3. NODESEEK_USER_AGENT (可选)
  * - 抓包时的 User-Agent，必须与 Cookie 来源浏览器一致，否则会报 403
  * * 作者: CodeBuddy
@@ -56,8 +56,9 @@ function getCookies() {
 
 // 获取签到类型
 function getSignType() {
-    const type = process.env.NODESEEK_SIGN_TYPE || 'random';
-    return type.toLowerCase() === 'fixed' ? 'fixed' : 'random';
+    // 修改默认值为 fixed
+    const type = process.env.NODESEEK_SIGN_TYPE || 'fixed';
+    return type.toLowerCase() === 'random' ? 'random' : 'fixed';
 }
 
 // 获取 User-Agent
@@ -130,8 +131,6 @@ async function sign(cookie, index) {
             }
 
         } catch (error) {
-            // --- 错误处理逻辑升级 ---
-
             // 特判：NodeSeek 即使是 HTTP 500 也可以是“已签到”
             if (error.response && error.response.status === 500) {
                  const data = error.response.data || {};
@@ -193,7 +192,7 @@ async function main() {
     }
 
     log(`📝 检测到 ${cookies.length} 个账号`);
-    const typeDisplay = signType === 'random' ? '随机鸡腿 (推荐)' : '固定签到';
+    const typeDisplay = signType === 'random' ? '随机鸡腿' : '固定签到 (默认)';
     log(`🎯 签到模式: ${typeDisplay}`);
     log(`🛡️ User-Agent: ${getUserAgent().substring(0, 50)}...`);
 
