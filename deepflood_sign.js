@@ -11,7 +11,7 @@
  * 3. DEEPFLOOD_SIGN_TYPE (可选)
  * - fixed (默认) / random
  * * 作者: CodeBuddy
- * 更新时间: 2025-01-27
+ * 更新时间: 2025-01-30 (修复 403 问题)
  */
 
 const axios = require('axios');
@@ -88,6 +88,7 @@ async function sign(cookie, index, customHeaders) {
     const headers = {
         'User-Agent': ua,
         'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest', // 关键字段：防止403
         'Origin': CONFIG.ORIGIN,
         'Referer': CONFIG.REFERER,
         'Cookie': cookie,
