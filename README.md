@@ -15,6 +15,7 @@
 | 平台 | 脚本文件 | 功能描述 | 状态 |
 |------|----------|----------|------|
 | ACCK | `acck_sign.js` | ACCK 自动签到，支持多账号 | 🆕 新增 |
+| SVYUN | `svyun_sign.js` | 速维云自动签到，支持多账号 | 🆕 新增 |
 | YBT | `script-docs/ybt_sign/ybt_sign.js` | YBT自动签到，支持多账号 | ✅ 稳定运行 |
 
 ## 🚀 快速开始
@@ -63,6 +64,7 @@
 ```
 qinglong-scripts/
 ├── README.md                 # 项目说明文档
+├── svyun_sign.js            # 速维云自动签到脚本
 ├── sendNotify.js            # 通知推送模块
 ├── notify.py                # Python通知推送模块
 └── script-docs/             # 脚本文档目录
