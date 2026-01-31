@@ -303,7 +303,7 @@ function buildNotifyContent(results) {
 
 async function main() {
     const startTime = Date.now();
-    log(`## 开始执行终末地签到 ${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}`);
+    log(`开始执行终末地签到 ${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}`);
     const accounts = parseAccounts();
     if (accounts.length === 0) {
         log('未找到有效的终末地账号配置，请检查环境变量', 'ERROR');
@@ -340,7 +340,7 @@ async function main() {
     }
     const endTime = Date.now();
     const durationSeconds = Math.max(1, Math.round((endTime - startTime) / 1000));
-    log(`## 执行结束 ${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}  耗时 ${durationSeconds} 秒`);
+    log(`执行结束 ${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}  耗时 ${durationSeconds} 秒`);
 }
 
 if (require.main === module) {
