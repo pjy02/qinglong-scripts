@@ -15,6 +15,7 @@
 | 平台 | 脚本文件 | 功能描述 | 状态 |
 |------|----------|----------|------|
 | ACCK | `acck_sign.js` | ACCK 自动签到，支持多账号 | 🆕 新增 |
+| 终末地 | `skland_endfield_sign.js` | 森空岛终末地自动签到，支持多账号 | 🆕 新增 |
 | SVYUN | `svyun_sign.js` | 速维云自动签到，支持多账号 | 🆕 新增 |
 | YBT | `script-docs/ybt_sign/ybt_sign.js` | YBT自动签到，支持多账号 | ✅ 稳定运行 |
 
@@ -64,10 +65,13 @@
 ```
 qinglong-scripts/
 ├── README.md                 # 项目说明文档
+├── skland_endfield_sign.js   # 终末地签到脚本
 ├── svyun_sign.js            # 速维云自动签到脚本
 ├── sendNotify.js            # 通知推送模块
 ├── notify.py                # Python通知推送模块
 └── script-docs/             # 脚本文档目录
+    ├── skland_endfield_sign/  # 终末地签到脚本说明
+    │   └── README.md
     └── ybt_sign/            # YBT相关脚本
         ├── YBT 签到脚本说明.md  # YBT脚本详细说明
         └── ybt_sign.js      # YBT自动签到脚本
