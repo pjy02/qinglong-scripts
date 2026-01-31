@@ -211,12 +211,14 @@ async function handleAccount(account, index) {
         signed: false,
         message: '',
         awards: [],
-        tomorrowAwards: []
+        tomorrowAwards: [],
+        timestamp: ''
     };
 
     log(`开始处理【${name}】...`);
 
     const statusHeaders = buildHeaders(account, 'GET');
+    result.timestamp = statusHeaders.timestamp;
     const statusRes = await request('GET', statusHeaders);
     if (!statusRes.success) {
         result.message = `查询状态失败: ${statusRes.error.message}`;
@@ -249,6 +251,9 @@ async function handleAccount(account, index) {
         const signResourceMap = signData.data ? signData.data.resourceInfoMap : resourceMap;
         result.awards = formatAwards(awardIds, signResourceMap);
         result.tomorrowAwards = formatAwards(signData.data ? signData.data.tomorrowAwardIds : [], signResourceMap);
+        const awardText = result.awards.length > 0 ? result.awards.join('、') : '无';
+        const tomorrowText = result.tomorrowAwards.length > 0 ? result.tomorrowAwards.join('、') : '未知';
+        log(`【${name}】签到成功，今日奖励: ${awardText}；明日奖励: ${tomorrowText}`);
         return result;
     }
 
@@ -260,10 +265,13 @@ async function handleAccount(account, index) {
         if (lastDoneAwardId) {
             result.awards = formatAwards([{ awardId: lastDoneAwardId }], resourceMap);
         }
+        const awardText = result.awards.length > 0 ? result.awards.join('、') : '无';
+        log(`【${name}】今日已签到，最近奖励: ${awardText}`);
         return result;
     }
 
     result.message = `签到失败: ${signMessage}`;
+    log(`【${name}】签到失败: ${signMessage}`, 'WARN');
     return result;
 }
 
@@ -275,8 +283,13 @@ function buildNotifyContent(results) {
         const status = res.success ? '✅' : '❌';
         content += `\n${idx + 1}. ${status} ${res.name}\n`;
         content += `   状态: ${res.message}\n`;
+        if (res.timestamp) {
+            content += `   请求时间: ${res.timestamp}\n`;
+        }
         if (res.awards.length > 0) {
             content += `   今日奖励: ${res.awards.join('、')}\n`;
+        } else {
+            content += `   今日奖励: 无\n`;
         }
         if (res.tomorrowAwards.length > 0) {
             content += `   明日奖励: ${res.tomorrowAwards.join('、')}\n`;
@@ -289,6 +302,8 @@ function buildNotifyContent(results) {
 }
 
 async function main() {
+    const startTime = Date.now();
+    log(`## 开始执行终末地签到 ${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}`);
     const accounts = parseAccounts();
     if (accounts.length === 0) {
         log('未找到有效的终末地账号配置，请检查环境变量', 'ERROR');
@@ -306,6 +321,12 @@ async function main() {
 
     const successCount = results.filter(item => item.success).length;
     log(`签到完成：成功 ${successCount}/${results.length}`);
+    log('签到结果汇总:');
+    results.forEach(item => {
+        const awardText = item.awards.length > 0 ? item.awards.join('、') : '无';
+        const tomorrowText = item.tomorrowAwards.length > 0 ? item.tomorrowAwards.join('、') : '未知';
+        log(`- ${item.name}: ${item.message} | 今日奖励: ${awardText} | 明日奖励: ${tomorrowText}`);
+    });
 
     const notifyContent = buildNotifyContent(results);
     if (sendNotify) {
@@ -317,6 +338,9 @@ async function main() {
     } else {
         console.log(notifyContent);
     }
+    const endTime = Date.now();
+    const durationSeconds = Math.max(1, Math.round((endTime - startTime) / 1000));
+    log(`## 执行结束 ${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}  耗时 ${durationSeconds} 秒`);
 }
 
 if (require.main === module) {

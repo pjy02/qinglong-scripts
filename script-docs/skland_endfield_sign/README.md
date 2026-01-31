@@ -22,37 +22,41 @@ npm install axios
 
 ### 2. 环境变量设置
 
-#### 多账号配置（推荐）
-
-```
-变量名: SKLAND_ENDFIELD_ACCOUNTS
-变量值: CRED#DID#ROLE#USER_AGENT#VNAME#PLATFORM#SIGN_SALT#SIGN#备注
-```
-
-- 多账号用换行或 `&` 分隔
-- `CRED`/`DID`/`ROLE` 为抓包请求头中的同名字段
-- `USER_AGENT`/`VNAME`/`PLATFORM`/`SIGN_SALT`/`SIGN` 可选，不填将使用脚本默认值
-- 如果你提供了抓包 `SIGN`，脚本将直接使用；否则使用 `SIGN_SALT` 自动计算
-- `备注` 可选
-
-示例：
-```
-SKLAND_ENDFIELD_ACCOUNTS=cred_value#did_value#3_1033204557_1#Mozilla/5.0...#1.0.0#3#c2594619f518e388fcc24a806020c78a#sign_value#主账号
-second_cred#second_did#3_1033xxxxx_1#Mozilla/5.0...#1.0.0#3#c2594619f518e388fcc24a806020c78a##副账号
-
-#### 简化配置（可选）
+#### 简化配置（推荐，最少字段）
 
 ```
 变量名: SKLAND_ENDFIELD_LIST
 变量值: CRED#ROLE#备注
 ```
 
+- 多账号用换行或 `&` 分隔
+- `CRED`/`ROLE` 为抓包请求头中的同名字段
+- 其他参数（如 `DID`、`USER_AGENT`、`SIGN_SALT`、`SIGN`）会从单账号环境变量或脚本默认值读取
+- `备注` 可选
+
 示例：
 ```
 SKLAND_ENDFIELD_LIST=cred_value#3_1033204557_1#主账号
 second_cred#3_1033xxxxx_1#副账号
 ```
+
+#### 多账号配置（完整配置）
+
 ```
+变量名: SKLAND_ENDFIELD_ACCOUNTS
+变量值: CRED#DID#ROLE#USER_AGENT#VNAME#PLATFORM#SIGN_SALT#SIGN#备注
+```
+
+示例：
+```
+SKLAND_ENDFIELD_ACCOUNTS=cred_value#did_value#3_1033204557_1#Mozilla/5.0...#1.0.0#3#c2594619f518e388fcc24a806020c78a#sign_value#主账号
+second_cred#second_did#3_1033xxxxx_1#Mozilla/5.0...#1.0.0#3#c2594619f518e388fcc24a806020c78a##副账号
+```
+
+#### 两种多账号变量的区别
+
+- `SKLAND_ENDFIELD_LIST`：**推荐**，只需要 `CRED` 与 `ROLE`，其余参数统一使用单账号环境变量或脚本默认值，配置更简单。
+- `SKLAND_ENDFIELD_ACCOUNTS`：**完整配置**，适合需要单独设置 `DID` / `USER_AGENT` / `SIGN_SALT` / `SIGN` 的场景，可对每个账号独立指定参数。
 
 #### 单账号配置
 
