@@ -2,7 +2,7 @@
 
 ## 📋 脚本简介
 
-该脚本用于森空岛（SKLand）里 **明日方舟：终末地** 的每日签到。脚本会调用签到接口并展示当日/次日奖励信息，支持多账号批量执行。
+该脚本用于森空岛（SKLand）里 **明日方舟：终末地** 的每日签到。脚本会调用签到接口并展示当日/次日奖励信息，支持多账号批量执行，并在 `sign` 失效时可切换为自动签名。
 
 > 每月签到奖励可能会变化，脚本会根据接口返回动态展示奖励内容。
 
@@ -32,12 +32,13 @@ npm install axios
 - 多账号用换行或 `&` 分隔
 - `CRED`/`DID`/`ROLE` 为抓包请求头中的同名字段
 - `USER_AGENT`/`VNAME`/`PLATFORM`/`SIGN_SALT`/`SIGN` 可选，不填将使用脚本默认值
+- 如果你提供了抓包 `SIGN`，脚本将直接使用；否则使用 `SIGN_SALT` 自动计算
 - `备注` 可选
 
 示例：
 ```
 SKLAND_ENDFIELD_ACCOUNTS=cred_value#did_value#3_1033204557_1#Mozilla/5.0...#1.0.0#3#c2594619f518e388fcc24a806020c78a#sign_value#主账号
-second_cred#second_did#3_1033xxxxx_1#Mozilla/5.0...#1.0.0#3#c2594619f518e388fcc24a806020c78a#sign_value#副账号
+second_cred#second_did#3_1033xxxxx_1#Mozilla/5.0...#1.0.0#3#c2594619f518e388fcc24a806020c78a##副账号
 
 #### 简化配置（可选）
 
@@ -85,7 +86,7 @@ SKLAND_TIMESTAMP=1769835441
 
 重点关注请求头字段：
 - `cred`
-- `sign` (可由脚本自动计算，也可直接使用抓包值)
+- `sign`（可直接使用抓包值）
 - `did`
 - `sk-game-role`
 - `timestamp`
@@ -93,7 +94,17 @@ SKLAND_TIMESTAMP=1769835441
 - `vname`
 - `platform`
 
-> `sign` 可直接使用抓包值，或由 path + body + timestamp + salt 计算；若签到失败请更新 `SIGN_SALT` 或重新抓包。
+> `sign` 可直接使用抓包值，或由 `path + body + timestamp + salt` 计算（脚本自动处理）。若签到失败请更新 `SIGN_SALT` 或重新抓包获取 `SIGN`。
+
+## 🔐 签名说明（可选）
+
+如果不提供 `SIGN`，脚本会使用以下规则自动生成：  
+`sign = md5(path + body + timestamp + salt)`  
+其中：
+- `path` 固定为 `/web/v1/game/endfield/attendance`
+- `body` 为空字符串（POST 体为空）
+- `timestamp` 为当前秒级时间戳
+- `salt` 使用 `SIGN_SALT`（默认内置值）
 
 ## 📊 通知示例
 
@@ -110,8 +121,8 @@ SKLAND_TIMESTAMP=1769835441
 ## 🐛 常见问题
 
 ### Q1: 提示“签名错误 / 无权限”？
-- 通常是 `SIGN_SALT` 失效或 `timestamp` 偏差过大
-- 重新抓包更新 `SIGN_SALT`，或直接填写抓包的 `SIGN`
+- 通常是 `SIGN` 过期、`SIGN_SALT` 失效或 `timestamp` 偏差过大
+- 重新抓包更新 `SIGN` 或 `SIGN_SALT`，并确保本机时间准确
 
 ### Q2: 没有发送通知？
 - 请确认青龙面板通知功能已配置
