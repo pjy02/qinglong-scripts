@@ -1,7 +1,7 @@
 /**
  * 森空岛-明日方舟：终末地 自动签到脚本
  * * cron: 30 7 * * *
- * const $ = new Env('终末地签到');
+ * const $ = new Env('终末地签到2');
  * * ⚠️ 【重要说明】
  * 终末地签到需要抓取 header 中的 cred 和 sk-game-role。
  * 建议使用手机抓包工具（如 HttpCanary, Charles, Fiddler）抓取森空岛 APP。
@@ -195,3 +195,4 @@ async function main() {
 }
 
 main().catch(e => console.error(e));
+
